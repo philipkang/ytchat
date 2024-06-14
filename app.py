@@ -1,5 +1,6 @@
 import logging
 from youtube_transcript_api import YouTubeTranscriptApi
+from bedrock import bedrock_chain
 
 logger = logging.getLogger()
 logger.setLevel("INFO")
@@ -36,3 +37,13 @@ def generate_prompt_from_transcript(transcript):
     logger.info("prompt")
     logger.info(prompt)
     return prompt
+
+def handle_input(youtube_url):
+    video_id = get_video_id_from_url(youtube_url)
+    transcript = get_transcript(video_id)
+    prompt = generate_prompt_from_transcript(transcript)
+
+    chain = bedrock_chain()
+    summary = chain.run(prompt)
+
+    return summary
