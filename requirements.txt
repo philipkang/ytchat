@@ -1,5 +1,5 @@
-langchain
 boto3>=1.34.94
+langchain
+langchain_community
 streamlit
 youtube_transcript_api
-langchain_community
