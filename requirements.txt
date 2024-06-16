@@ -1,5 +1,5 @@
 boto3>=1.34.94
 langchain
 langchain_community
-streamlit
-youtube_transcript_api
+streamlit==1.13.0
+youtube_transcript_api==4.1.0
