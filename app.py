@@ -17,7 +17,7 @@ if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
 
 def main():
-    st.title("YouTube Video Summarizer and Chat App")
+    st.title("YouTube Digest")
 
     # Input YouTube video URL
     youtube_url = st.text_input("Enter YouTube Video URL")
