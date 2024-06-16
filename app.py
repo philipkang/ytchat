@@ -1,49 +1,86 @@
-import logging
-from youtube_transcript_api import YouTubeTranscriptApi
+import streamlit as st
+from utilities import get_video_id_from_url, get_transcript, generate_prompt_from_transcript
 from bedrock import bedrock_chain
 
-logger = logging.getLogger()
-logger.setLevel("INFO")
+# Initialize the Bedrock chain and conversation state outside the main function
+if 'conversation' not in st.session_state:
+    st.session_state.conversation = bedrock_chain()
 
-def get_video_id_from_url(youtube_url):
-    logger.info("Inside get_video_id_from_url ..")
+# Initialize the state variables
+if 'video_processed' not in st.session_state:
+    st.session_state.video_processed = False
 
-    watch_param = 'watch?v='
-    video_id = youtube_url.split('/')[-1].strip()
-    if video_id == '':
-        video_id = youtube_url.split('/')[-2].strip()
-    if watch_param in video_id:
-        video_id = video_id[len(watch_param):]
+if 'awaiting_response' not in st.session_state:
+    st.session_state.awaiting_response = False
 
-    logger.info("video_id")
-    logger.info(video_id)
-    return video_id
+if 'conversation_history' not in st.session_state:
+    st.session_state.conversation_history = []
 
-def get_transcript(video_id):
-    logger.info("Inside get_transcript ..")
+def main():
+    st.title("YouTube Video Summarizer and Chat App")
 
-    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-    logger.info("transcript")
-    logger.info(transcript)
-    return transcript
+    # Input YouTube video URL
+    youtube_url = st.text_input("Enter YouTube Video URL")
 
-def generate_prompt_from_transcript(transcript):
-    logger.info("Inside generate_prompt_from_transcript ..")
+    if youtube_url and not st.session_state.video_processed:
+        try:
+            # Get video ID from URL
+            video_id = get_video_id_from_url(youtube_url)
 
-    prompt = "Summarize the following video:\n"
-    for trans in transcript:
-        prompt += " " + trans.get('text', '')
-    
-    logger.info("prompt")
-    logger.info(prompt)
-    return prompt
+            # Get transcript for the video
+            transcript = get_transcript(video_id)
 
-def handle_input(youtube_url):
-    video_id = get_video_id_from_url(youtube_url)
-    transcript = get_transcript(video_id)
-    prompt = generate_prompt_from_transcript(transcript)
+            # Generate prompt from the transcript
+            prompt = generate_prompt_from_transcript(transcript)
 
-    chain = bedrock_chain()
-    summary = chain.run(prompt)
+            # Summarize the transcript
+            summary = st.session_state.conversation({"input": prompt})
 
-    return summary
+            # Extract the summary text from the response
+            summarized_text = summary.get("response", "Summary not available.")
+
+            # Store the summary and mark the video as processed
+            st.session_state.summarized_text = summarized_text
+            st.session_state.video_processed = True
+        except Exception as e:
+            st.error(f"Error processing video: {e}")
+
+    if st.session_state.video_processed:
+        # Display the summarized text
+        st.subheader("Summary")
+        st.write(st.session_state.summarized_text)
+
+        # Display conversation history
+        if st.session_state.conversation_history:
+            st.subheader("Conversation History")
+            for i, (question, answer) in enumerate(st.session_state.conversation_history):
+                st.write(f"**Q{i+1}:** {question}")
+                st.write(f"**A{i+1}:** {answer}")
+
+        # User input for chat
+        user_input = st.text_input("Ask a question or continue the conversation", key="user_input")
+
+        if st.button("Send"):
+            if user_input:
+                st.session_state.awaiting_response = True
+                try:
+                    # Get the response from Bedrock model
+                    response = st.session_state.conversation({"input": user_input})
+
+                    # Display the response
+                    if "response" in response:
+                        st.session_state.conversation_history.append((user_input, response["response"]))
+                    else:
+                        st.error("Error: Chat response does not contain 'response' key")
+                except Exception as e:
+                    st.error(f"Error during conversation: {e}")
+                finally:
+                    # Allow the next question
+                    st.session_state.awaiting_response = False
+
+                    # Reset the input field by clearing the key
+                    st.session_state.pop("user_input", None)
+                    st.experimental_rerun()
+
+if __name__ == "__main__":
+    main()

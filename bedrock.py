@@ -4,6 +4,7 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_models import BedrockChat
 import streamlit as st
+import os
 
 from botocore.config import Config
 retry_config = Config(
@@ -15,8 +16,11 @@ retry_config = Config(
 )
 
 def bedrock_chain():
-    ACCESS_KEY = st.secrets["ACCESS_KEY"]
-    SECRET_KEY = st.secrets["SECRET_KEY"]
+    #ACCESS_KEY = st.secrets["ACCESS_KEY"]
+    #SECRET_KEY = st.secrets["SECRET_KEY"]
+
+    ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
+    SECRET_KEY = os.environ['AWS_SECRET_KEY']
     session = boto3.Session(
         aws_access_key_id=ACCESS_KEY,
         aws_secret_access_key=SECRET_KEY
