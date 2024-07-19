@@ -3,3 +3,5 @@ langchain==0.2.5
 langchain_community==0.2.5
 streamlit==1.13.0
 youtube_transcript_api
+altair==4.1.0
+tornado==6.1
